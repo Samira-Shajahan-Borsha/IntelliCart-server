@@ -1,0 +1,70 @@
+/// Customer / vendor / admin identity. `email` is stored normalized (trimmed, lower-case),
+/// which makes the unique constraint enforce PRD 7.1 "unique normalized email".
+model User {
+  id              String     @id @default(cuid())
+  name            String     @db.VarChar(100)
+  email           String     @unique @db.VarChar(254)
+  passwordHash    String
+  phone           String?    @db.VarChar(20)
+  role            UserRole   @default(CUSTOMER)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  avatarUrl       String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  sessions    Session[]
+  emailTokens EmailToken[]
+
+  @@index([role, status])
+}
+
+/// One row per signed-in device. Revocation is checked on every authenticated call,
+/// so logout / session revocation takes effect before the access token expires.
+model Session {
+  id            String               @id @default(cuid())
+  userId        String
+  userAgent     String?              @db.VarChar(512)
+  ipAddress     String?              @db.VarChar(64)
+  createdAt     DateTime             @default(now())
+  lastUsedAt    DateTime             @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  revokedReason SessionRevokeReason?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@index([userId, revokedAt])
+}
+
+/// Rotating refresh credentials. Only a SHA-256 hash is stored. A token is single-use:
+/// presenting an already-used token is treated as replay and revokes the whole session.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  sessionId String
+  tokenHash String    @unique @db.Char(64)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+/// Single-use email verification / password reset tokens (hash only).
+model EmailToken {
+  id         String         @id @default(cuid())
+  userId     String
+  type       EmailTokenType
+  tokenHash  String         @unique @db.Char(64)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}

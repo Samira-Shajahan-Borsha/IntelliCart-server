@@ -1,0 +1,24 @@
+enum UserRole {
+  CUSTOMER
+  VENDOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum EmailTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum SessionRevokeReason {
+  LOGOUT
+  USER_REVOKED
+  PASSWORD_RESET
+  REFRESH_REUSE_DETECTED
+  ADMIN_ACTION
+}
