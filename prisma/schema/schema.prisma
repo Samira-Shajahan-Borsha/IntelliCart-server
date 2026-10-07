@@ -1,0 +1,14 @@
+// ShopWise AI - Prisma schema entry point.
+// Models are split by domain in this folder (convention adopted from the reference repo).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pgvector is enabled from the first migration so later embedding tables need no extension churn.
+  extensions = [vector]
+}

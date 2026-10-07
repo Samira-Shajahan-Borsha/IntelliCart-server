@@ -1,0 +1,156 @@
+webrpc = v1
+
+name = shopwise
+version = v0.1.0
+basepath = /rpc
+
+# ShopWise AI public application contract.
+# Source of truth: ShopWise AI Engineering PRD v2.0 (section 10). Every method below
+# references its original PRD API ID so REST -> RPC traceability is preserved.
+#
+# Envelope rule (PRD 4.2 / 10.0): every method returns a response struct carrying
+# status, success, message, data and, for paginated collections only, meta.
+# Errors are returned through WebRPC errors whose names mirror PRD 13.4 codes
+# and whose HTTP status matches the PRD status table.
+
+#
+# Common types
+#
+
+enum UserRole: string
+  - CUSTOMER
+  - VENDOR
+  - ADMIN
+
+enum UserStatus: string
+  - ACTIVE
+  - BLOCKED
+  - DELETED
+
+struct PaginationMeta
+  - page: uint32
+  - limit: uint32
+  - total: uint32
+  - totalPages: uint32
+
+# Field-level validation detail (PRD 13.1 IErrorPayload.errors[]).
+struct FieldError
+  - field?: string
+  - message: string
+
+# Response for operations whose PRD contract is IResponseData<null>.
+struct EmptyResponse
+  - status: uint16
+  - success: bool
+  - message: string
+
+#
+# Identity DTOs (PRD 10.1 / 10.2)
+#
+
+# UserDTO - safe public projection; never contains hashes or token metadata.
+struct UserDTO
+  - id: string
+  - name: string
+  - email: string
+  - phone?: string
+  - role: UserRole
+  - status: UserStatus
+  - emailVerified: bool
+  - avatarUrl?: string
+  - createdAt: string
+
+# AuthSessionDTO - accessToken is returned in the body; the refresh credential is
+# only ever sent as an HttpOnly cookie and never appears in this payload.
+struct AuthSessionDTO
+  - user: UserDTO
+  - accessToken?: string
+  - expiresAt: string
+  # Double-submit CSRF token that must be echoed in X-CSRF-Token for
+  # cookie-authenticated calls (Refresh, Logout).
+  - csrfToken: string
+
+struct AuthSessionResponse
+  - status: uint16
+  - success: bool
+  - message: string
+  - data: AuthSessionDTO
+
+struct UserResponse
+  - status: uint16
+  - success: bool
+  - message: string
+  - data: UserDTO
+
+#
+# Auth requests
+#
+
+struct RegisterInput
+  - name: string
+  - email: string
+  - password: string
+  - phone?: string
+
+struct LoginInput
+  - email: string
+  - password: string
+
+struct ForgotPasswordInput
+  - email: string
+
+struct ResetPasswordInput
+  - resetToken: string
+  - newPassword: string
+
+struct VerifyEmailInput
+  - token: string
+
+# email is used only when the caller is not authenticated (public policy).
+struct ResendVerificationInput
+  - email?: string
+
+#
+# Errors (PRD 13.4). Codes are stable integers; names are the PRD codes.
+#
+
+error 1000 VALIDATION_ERROR          "Validation failed."                          HTTP 422
+error 1001 BAD_REQUEST               "Bad request."                                HTTP 400
+error 1002 UNAUTHENTICATED           "Authentication is required."                 HTTP 401
+error 1003 FORBIDDEN                 "You do not have permission for this action." HTTP 403
+error 1004 NOT_FOUND                 "Resource not found."                         HTTP 404
+error 1005 CONFLICT                  "Request conflicts with current state."       HTTP 409
+error 1006 INSUFFICIENT_STOCK        "Requested quantity exceeds available stock." HTTP 409
+error 1007 PRICE_CHANGED             "Listing price changed."                      HTTP 409
+error 1008 INVALID_ORDER_TRANSITION  "Order status transition is not allowed."     HTTP 409
+error 1009 RATE_LIMITED              "Too many requests."                          HTTP 429
+error 1010 AI_PROVIDER_UNAVAILABLE   "AI provider is temporarily unavailable."     HTTP 503
+error 1011 AI_TOOL_FAILED            "Agent tool failed."                          HTTP 502
+error 1012 FORECAST_UNAVAILABLE      "Forecast is unavailable."                    HTTP 503
+error 1013 IMAGE_PROCESSING_FAILED   "Image processing failed."                    HTTP 422
+error 1014 PAYLOAD_TOO_LARGE         "Payload too large."                          HTTP 413
+error 1015 UNSUPPORTED_MEDIA_TYPE    "Unsupported media type."                     HTTP 415
+error 1016 SERVICE_UNAVAILABLE       "Service temporarily unavailable."            HTTP 503
+error 1017 INTERNAL_ERROR            "Unexpected server error."                    HTTP 500
+
+#
+# PRD 10.1 Authentication & Session Entry
+#
+
+service AuthService
+  # API-001 POST /auth/register
+  - Register(req: RegisterInput) => (res: AuthSessionResponse)
+  # API-002 POST /auth/login
+  - Login(req: LoginInput) => (res: AuthSessionResponse)
+  # API-003 POST /auth/refresh (refresh credential from HttpOnly cookie)
+  - Refresh() => (res: AuthSessionResponse)
+  # API-004 POST /auth/logout
+  - Logout() => (res: EmptyResponse)
+  # API-005 POST /auth/forgot-password
+  - ForgotPassword(req: ForgotPasswordInput) => (res: EmptyResponse)
+  # API-006 POST /auth/reset-password
+  - ResetPassword(req: ResetPasswordInput) => (res: EmptyResponse)
+  # API-007 POST /auth/verify-email
+  - VerifyEmail(req: VerifyEmailInput) => (res: UserResponse)
+  # API-008 POST /auth/resend-verification
+  - ResendVerification(req: ResendVerificationInput) => (res: EmptyResponse)
