@@ -3,15 +3,16 @@ services:
     image: pgvector/pgvector:pg17
     container_name: shopwise-postgres
     environment:
-      POSTGRES_USER: shopwise
-      POSTGRES_PASSWORD: shopwise
-      POSTGRES_DB: shopwise
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - '5433:5432'
+      - "5433:5432"
     volumes:
       - shopwise-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U shopwise']
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       retries: 10
 

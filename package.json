@@ -17,7 +17,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "db:up": "docker compose up -d postgres"
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down postgres"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",
@@ -42,7 +43,7 @@
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/supertest": "^7.2.1",
     "eslint": "^10.12.0",
     "jest": "^30.5.2",

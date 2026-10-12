@@ -11,7 +11,10 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    // "baseUrl": "./",
+    "paths": {
+      "@/*": ["./*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
